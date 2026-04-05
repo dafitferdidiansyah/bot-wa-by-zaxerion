@@ -276,11 +276,26 @@ export async function handler(chatUpdate) {
 				if (plugin.private && m.isGroup) { fail('private', m, this); continue }
 
 				let now = Date.now();
-				let userCooldown = db.data.users[actualSender]?.cooldown || 0;
+				// --- FIX ERROR COOLDOWN ---
+				// 1. Pastikan data user sudah dibuat di database sebelum dicek cooldown-nya
+				if (!db.data.users[actualSender]) {
+					db.data.users[actualSender] = { 
+                        cooldown: 0, 
+                        banned: false, 
+                        warn: 0, 
+                        spamcount: 0 
+                    };
+				}
 
+				// 2. Baru kita ambil data cooldown-nya
+				let userCooldown = db.data.users[actualSender].cooldown || 0;
+
+				// 3. Jika masih dalam masa jeda, abaikan pesannya
 				if (now < userCooldown) return;
+                
+				// 4. Update waktu jeda baru
 				db.data.users[actualSender].cooldown = now + cooldownTime;
-
+				// --------------------------
 				m.isCommand = true
 				let extra = {
 					match, usedPrefix, noPrefix, _args, args, command, text,
